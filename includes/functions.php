@@ -217,3 +217,52 @@ function buddyreshare_get_class( $activity = null, $activity_first_id = 0 ) {
 	if( $originally_shared['activities'][0]->user_id == bp_loggedin_user_id() )
 		return 'reshared';
 }
+
+
+/**
+ * Notification formatting callback for bp-reshare
+ *
+ *
+ * @param string $action            The kind of notification being rendered.
+ * @param int    $item_id           The primary item ID.
+ * @param int    $secondary_item_id The secondary item ID.
+ * @param int    $total_items       The total number of share related notifications for the user.
+ * @param string $format            'string' for BuddyBar-compatible notifications;
+ *                                  'array' for WP Toolbar. Default: 'string'.
+ * @return array|string
+ */
+function buddyreshare_format_notifications( $action, $item_id, $secondary_item_id, $total_items, $format = 'string' ) {
+//using activity here can cause  fatal?
+	switch ( $action ) {
+		case 'bpr_item_shared':
+			$link = trailingslashit( bp_loggedin_user_domain() . bp_get_notifications_slug() . '/' );
+
+			// Set up the string and the filter.
+			if ( (int) $total_items > 1 ) {
+				$text = sprintf( __( '%d users have shared your activity.', 'bp-reshare' ), (int) $total_items );
+				$amount = 'multiple';
+			} else {
+				$link = bp_activity_get_permalink( $item_id );
+				$text = sprintf( __( '%s shared your activity', 'bp-reshare' ),  bp_core_get_user_displayname( $secondary_item_id ) );
+				$amount = 'single';
+			}
+
+			break;
+	}
+
+	// Return either an HTML link or an array, depending on the requested format.
+	if ( 'string' == $format ) {
+
+		$return = apply_filters( 'bp_reshare_' . $amount . '_shares_' . $action . '_notification', '<a href="' . esc_url( $link ) . '">' . esc_html( $text ) . '</a>', (int) $total_items, $item_id );
+	} else {
+		$return = apply_filters( 'bp_reshare_' . $amount . '_shares_' . $action . '_notification', array(
+			'link' => $link,
+			'text' => $text
+		), (int) $total_items, $item_id );
+	}
+
+	do_action( 'bp_reshare_format_notifications', $action, $item_id, $secondary_item_id, $total_items, $return );
+
+	return $return;
+}
+
