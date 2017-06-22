@@ -99,7 +99,8 @@ function buddyreshare_ajax_delete_reshare() {
 		$response['message'] = __( 'Unable to reset the properties of the reshared activity', 'bp-reshare' );
 		exit( json_encode( $response ) );
 	}
-	
+
+	do_action( 'buddyreshare_reshare_pre_delete', $reshare_id );
 	$deleted_reshare = bp_activity_delete( array('type' => 'reshare_update',  'id' => $reshare_id ) );
 	
 	if( ! empty( $deleted_reshare ) ) {
