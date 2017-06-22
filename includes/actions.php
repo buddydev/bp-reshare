@@ -132,7 +132,9 @@ function buddyreshare_remove_reshare() {
 		bp_core_add_message( __( 'Unable to reset the properties of the reshared activity', 'bp-reshare' ), 'error' );
 		bp_core_redirect( $redirect );
 	}
-		
+
+	do_action( 'buddyreshare_reshare_pre_delete', $reshare_id );
+
 	$deleted_reshare = bp_activity_delete( array('type' => 'reshare_update',  'id' => $reshare_id ) );
 	
 	if ( !empty( $deleted_reshare ) ) {
@@ -250,3 +252,49 @@ function buddyreshare_reshared_by_list() {
 	add_action('bp_before_activity_entry_comments', 'buddyreshare_list_user_avatars' );
 }
 
+
+/**
+ * Add notification on share
+ *
+ * @param $activity_id
+ */
+function buddyshare_add_notification_on_share( $activity_id ) {
+
+	if ( ! function_exists( 'bp_notifications_add_notification' ) ) {
+		return ;
+	}
+
+	$activity = new BP_Activity_Activity( $activity_id );
+	$parent_activity = new BP_Activity_Activity( $activity->secondary_item_id );
+	bp_notifications_add_notification( array(
+		'user_id'   => $parent_activity->user_id,
+		'item_id'   => $parent_activity->id, //activity id
+		'secondary_item_id' => bp_loggedin_user_id(),
+		'component_name'    => buddyreshare_get_component_id(),
+		'component_action'    => 'bpr_item_shared',
+	) );
+
+}
+add_action( 'buddyreshare_reshare_added', 'buddyshare_add_notification_on_share' );
+
+
+/**
+ * Delete notification on unshare
+ *
+ * @param int $activity_id
+ */
+function buddyshare_remove_notification_on_share_delete( $activity_id ) {
+
+	if ( ! function_exists( 'bp_notifications_delete_notifications_by_item_id' ) ) {
+		return ;
+	}
+	$activity = new BP_Activity_Activity( $activity_id );
+	$parent_activity = new BP_Activity_Activity( $activity->secondary_item_id );
+
+	$user_id = $$parent_activity->user_id;
+	bp_notifications_delete_notifications_by_item_id( $user_id, $parent_activity->id,buddyreshare_get_component_id(), 'bpr_item_shared', bp_loggedin_user_id() );
+}
+add_action( 'buddyreshare_reshare_pre_delete', 'buddyshare_remove_notification_on_share_delete' );
+
+//on activity delete
+//delete all notifications associated with it,
